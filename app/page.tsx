@@ -33,7 +33,7 @@ export default function Home() {
         <h2 className="text-sm text-zinc-500 ">
           Hi, my name is Paul, I'm a software engineer and builder. <br /> I
           shipped features to millions of customers at Amazon <br /> and I'm
-          currently working on a few projects.
+          currently freelancing and building my own products.
         </h2>
       </div>
     </div>
