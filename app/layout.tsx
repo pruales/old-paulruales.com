@@ -1,26 +1,25 @@
-import "../global.css";
 import { Inter } from "@next/font/google";
 import LocalFont from "@next/font/local";
 import { Metadata } from "next";
+import "../global.css";
 import { Analytics } from "./components/analytics";
 
 export const metadata: Metadata = {
 	title: {
-		default: "chronark.com",
-		template: "%s | chronark.com",
+		default: "paul ruales",
+		template: "%s | paul ruales",
 	},
-	description: "Software engineer at upstash.com and founder of planetfall.io",
+	description: "Independent software engineer. Ex-Amazon.",
 	openGraph: {
-		title: "chronark.com",
-		description:
-			"Software engineer at upstash.com and founder of planetfall.io",
-		url: "https://chronark.com",
-		siteName: "chronark.com",
+		title: "paul ruales",
+		description: "Independent software engineer. Ex-Amazon.",
+		url: "https://paulruales.com",
+		siteName: "paul ruales",
 		images: [
 			{
-				url: "https://chronark.com/og.png",
-				width: 1920,
-				height: 1080,
+				url: "https://paulruales.com/desk.png",
+				width: 1024,
+				height: 1024,
 			},
 		],
 		locale: "en-US",
@@ -38,11 +37,11 @@ export const metadata: Metadata = {
 		},
 	},
 	twitter: {
-		title: "Chronark",
+		title: "paul0x741",
 		card: "summary_large_image",
 	},
 	icons: {
-		shortcut: "/favicon.png",
+		shortcut: "/favicon.ico",
 	},
 };
 const inter = Inter({
