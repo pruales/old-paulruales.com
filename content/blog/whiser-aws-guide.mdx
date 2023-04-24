@@ -1,0 +1,127 @@
+---
+title: 'Transcribing Audio on AWS with Whisper'
+publishedAt: '2023-04-25'
+summary: "Whisper is a state-of-art speech-to-text model released by OpenAI. I've been using it to transcribe podcasts on AWS for 77% cheaper compared to using OpenAI's API."
+---
+
+I've been working on [podAI](https://podai.vercel.app/) for the past week. It's a podcast search engine that uses [Whisper](https://github.com/openai/whisper) to transcribe podcasts. 
+
+It took me a while to find a sustainable way to transcribe large amounts of audio with Whisper. I'm sharing my learnings here in case it's helpful for others.
+
+## Cost Comparison
+
+I'm using a [g4dn.xlarge instance on AWS](https://aws.amazon.com/ec2/instance-types/g4/). This instance has 1 Nvidia T4 GPU, 4 vCPUs, and 16GB of memory. It costs $0.526 per hour.
+
+OpenAI charges [$0.006 per minute of audio](https://openai.com/pricing). 
+
+With cuda enabled, I'm transcribing around 390 minutes of audio per hour. I'm also using the large-v2 model which is the largest and most accurate. Using the api, this would cost $2.34 per hour.
+
+So I'm saving $1.81 per hour by running Whisper on AWS. **That's a 77% savings.**
+
+> **Note**: there may be other cloud providers with even cheaper pricing (GCP costs $0.35 per hour for the same GPU). I'm using AWS because I'm most familiar with it and have a bunch of credits from YC startup school. 
+
+## Launching a g4dn Instance
+
+Select Launch Instance from the EC2 dashboard.
+
+Configure the instance with the following settings:
+
+* Name: Pick a name
+* AMI: Deep Learning AMI GPU Pytorch 2.0.0 (Amazon Linux 2) -- This AMI already had the right python version and cuda drivers installed.
+* Instance Type: g4dn.xlarge 
+* Key Pair: Create a new one or use an existing one. You'll need this to ssh into the instance. (This will download a pem file. Move it to `~/.ssh` and run `chmod 400 <pem file>` to make it private.)
+* Network Settings: I'm using the default settings. Make sure to enable ssh traffic from anywhere or your IP address (I wouldn't recommend this for sensitive production workloads).
+* Storage: Depending on what you need. I'm using 200GB because I was running a vector DB locally too.
+
+
+Launch the instance. It should take a few minutes to start up.
+
+
+## Connecting to your Instance and Configuring your Environment
+
+SSH into your instance. You can find the command to do this by clicking on the instance in the EC2 dashboard and clicking "Connect". It should look like:
+  
+  ```bash
+  ssh -i ~/.ssh/<pem file> ec2-user@<public dns>
+  ```
+
+Once you're in, if you need to install any apps like `tmux`, `htop`, etc run:
+  
+    ```bash
+    sudo yum install <app name>
+    ```
+
+I like to use tmux (for my terminal sessions) and htop (to monitor cpu and memory usage). If you want to monitor GPU usage, you can use `nvidia-smi` which should already be installed.
+
+
+You'll need ffmpeg to run Whisper:
+  
+    ```bash
+    sudo yum install ffmpeg
+    ```
+
+Since we are using the Deep Learning AMI, we can activate the python environment with:
+  
+    ```bash
+    source activate pytorch
+   ```
+Once you're in, you can install Whisper as described in their [README](https://github.com/openai/whisper#setup):
+
+```bash
+pip install -U openai-whisper
+```
+
+
+## Running Whisper on a Podcast Episode
+
+I'm using [feedparser](https://pythonhosted.org/feedparser/) to parse podcast RSS feeds. You can install it with:
+  
+```bash
+pip install feedparser
+```
+
+```python
+import whisper
+import feedparser
+import urllib.request
+import shutil
+
+
+feed = feedparser.parse('https://feeds.megaphone.fm/vergecast')
+episode = feed.entries[0]
+audio_url = episode.enclosures[0].href
+
+req = urllib.request.Request(url=audio_url, headers={"User-Agent": "Mozilla/5.0"})
+outf = "audio.mp3"
+with urllib.request.urlopen(req) as response, open(outf, "wb") as out_file:
+    shutil.copyfileobj(response, out_file)
+
+model = whisper.load_model('base.en')
+transcription = model.transcribe("audio.mp3", verbose=True)
+print(transcription)
+```
+
+Whisper will download the model the first time you load it. You can see the available models and the required VRAM [here](https://github.com/openai/whisper#available-models-and-languages).
+
+The model will output timestamps and transcriptions as it processes the audio. 
+
+```text
+100%|████████████████████████████████████████| 139M/139M [00:01<00:00, 141MiB/s]
+[00:00.000 --> 00:02.440]  Support for today's show comes from Deloitte.
+[00:02.440 --> 00:05.440]  In the business world, it can be especially crucial to innovate.
+[00:05.440 --> 00:08.100]  You can either build your own future or bet on someone else's.
+[00:08.100 --> 00:09.800]  No one knows what tomorrow will bring,
+[00:09.800 --> 00:12.480]  but you push forward and create enterprise anyway.
+[00:12.480 --> 00:15.540]  That's why Deloitte's mission is to help engineer advantage for their clients
+[00:15.540 --> 00:18.280]  by harnessing the latest innovations and technology
+[00:18.280 --> 00:21.920]  while exploring the ideas and opportunities that can look beyond today.
+[00:21.920 --> 00:24.620]  Transform what's next into what's now.
+```
+
+Feel free to play around with the model parameters to get the best results for your use case! The `large` model will be the most accurate and you can prompt the model with a custom string to get more relevant results
+ (OpenAI has more documentation on this [here](https://platform.openai.com/docs/guides/speech-to-text/longer-inputs)). 
+
+
+Let me know if you have any questions or feedback. I'm [@paul0x741](https://twitter.com/paul0x741) on Twitter.
+
+

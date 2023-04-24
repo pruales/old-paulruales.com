@@ -1,9 +1,14 @@
 import Link from "next/link";
 
 const navigation = [
-  { name: "Projects", href: "/projects" },
-  { name: "Blog", href: "/blog" },
-  { name: "Contact", href: "/contact" },
+  { name: "projects", href: "/projects" },
+  { name: "blog", href: "/blog" },
+  // { name: "work", href: "/about" },
+  {
+    name: "ideas",
+    href: "https://0xpaul.notion.site/Ideas-a1d37025fea7461a88c808b8313af4dd",
+  },
+  { name: "contact", href: "/contact" },
 ];
 
 export default function Home() {
